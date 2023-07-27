@@ -243,6 +243,7 @@ class TopLevelStructureHelper:
         
         # Add the directory of the current .py file to sys.path
         sys.path.append(str(base_dir))
+        sys.path.append(str(magic_dir))
 
         # Print out the example import statements for the user
         base_import_path = ".".join(['magic_universal_access'] + self.believed_top_level_folder_structure)
