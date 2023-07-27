@@ -63,35 +63,35 @@ class TopLevelStructureHelper:
         max_rank_path = self.df_init_files.sort_values(by='rank', ascending=False).iloc[0]['path']
         return Path(max_rank_path)
 
-    def poll_opinions_on_top_level_folder_structure(self):
+     def poll_opinions_on_top_level_folder_structure(self):
         """
         (1) Gather all "from ... import ..." statements from .py files in the self.modules_level directory and subdirectories.
         (2) filters to statements that reference subdirectories of self.modules_level -> which point to the top level folder structure
         (3) return all the relevant import statements and the list of subdirectories.
         """
-
+    
         # Get the current directory
         current_dir = self.modules_level
         top_level_dir = current_dir
-
+    
         # Get the names of all direct subdirectories of top_level_dir
         subdirs = [d for d in os.listdir(top_level_dir) if os.path.isdir(os.path.join(top_level_dir, d))]
-
+    
         # This will store all the relevant import statements
         import_statements = []
-
+    
         # Walk through all directories and files under top_level_dir
         for root, _, files in os.walk(top_level_dir):
             for filename in files:
                 # Only look at .py files
                 if filename.endswith('.py'):
-                    with open(os.path.join(root, filename)) as file:
+                    with open(os.path.join(root, filename), 'r', encoding='utf-8', errors='ignore') as file:  # Modified line
                         # Read the file content
                         content = file.read()
-
+    
                         # Find all "from ... import ..." statements
                         from_import_matches = re.findall(r"from\s+(\S+)\s+import", content)
-
+    
                         # Only keep the ones that reference one of the subdirectories
                         for match in from_import_matches:
                             for subdir in subdirs:
@@ -99,7 +99,7 @@ class TopLevelStructureHelper:
                                     # Split at the subdir and keep only the portion before it
                                     truncated_match = match.split(subdir)[0]+"."+subdir
                                     import_statements.append(truncated_match)
-
+    
         import_statements = {statement: statement.split('.') for statement in import_statements if "" not in statement.split('.')}
         return import_statements, subdirs
 
