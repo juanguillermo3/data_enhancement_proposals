@@ -33,25 +33,30 @@ class TopLevelStructureHelper:
         self.statements, self.subdirs = self.poll_opinions_on_top_level_folder_structure()
         self.believed_top_level_folder_structure = self.guess_believed_top_level_folder_structure()
 
-    #
     def guess_modules_level(self, max_levels_up=3):
         """
         Attempts to identify the folder level where the modules are located
-            (1) if positions in self.helper_location (the location of the same file)
-            (2) it list the parent folder up to max_levels_up
-            (3) for each folder, it dict-counts the number of __init__ files in the current folder, and in the subfolders one level down
-            (4) assemble a pandas.DataFrame with the counts, create a rank column, stores the dataframe in self.df_init_files 
-            (5) returns the folder path with the highest rank
+        (1) if positions in self.helper_location (the location of the same file)
+        (2) it list the parent folder up to max_levels_up
+        (3) for each folder, it dict-counts the number of __init__ files in the current folder, and in the subfolders one level down
+        (4) assemble a pandas.DataFrame with the counts, create a rank column, stores the dataframe in self.df_init_files 
+        (5) returns the folder path with the highest rank
         """
         df = []
-        for level in range(-1, max_levels_up):  # Change the range to start from -1
-            if level == -1:  # If level is -1, use the parent directory of the current file
+        for level in range(-1, max_levels_up):  
+            if level == -1:  
                 current_path = self.helper_location.parent
-            else:  # For other levels, use the parent directories
-                current_path = self.helper_location.parents[level]
+            else:
+                current_path = self.helper_location.parents[min(level, len(self.helper_location.parents) - 1)]
+                
+            # If we have reached the root directory, we could stop looking further up the directory tree
+            if current_path == current_path.parent:
+                break
+    
             init_files_in_current = len(list(current_path.glob("__init__.py")))
             init_files_in_children = sum(len(list(child.glob("__init__.py"))) for child in current_path.iterdir() if child.is_dir())
             df.append((str(current_path), init_files_in_current, init_files_in_children))
+    
         self.df_init_files = pd.DataFrame(df, columns=['path', 'current_init_files', 'children_init_files'])
         self.df_init_files['rank'] = self.df_init_files['current_init_files'] + self.df_init_files['children_init_files']
         self.df_init_files = self.df_init_files.sort_values(by='rank', ascending=False)
