@@ -33,38 +33,6 @@ class TopLevelStructureHelper:
         self.statements, self.subdirs = self.poll_opinions_on_top_level_folder_structure()
         self.believed_top_level_folder_structure = self.guess_believed_top_level_folder_structure()
 
-    def guess_modules_level(self, max_levels_up=3):
-        """
-        Attempts to identify the folder level where the modules are located
-        (1) if positions in self.helper_location (the location of the same file)
-        (2) it list the parent folder up to max_levels_up
-        (3) for each folder, it dict-counts the number of __init__ files in the current folder, and in the subfolders one level down
-        (4) assemble a pandas.DataFrame with the counts, create a rank column, stores the dataframe in self.df_init_files 
-        (5) returns the folder path with the highest rank
-        """
-        df = []
-        for level in range(-1, max_levels_up):  
-            if level == -1:  
-                current_path = self.helper_location.parent
-            else:  
-                # Ensure we do not go beyond available parent directories
-                try:
-                    current_path = self.helper_location.parents[level]
-                except IndexError:
-                    break
-    
-            init_files_in_current = len(list(current_path.glob("__init__.py")))
-            init_files_in_children = sum(len(list(child.glob("__init__.py"))) for child in current_path.iterdir() if child.is_dir())
-            df.append((str(current_path), init_files_in_current, init_files_in_children))
-    
-        self.df_init_files = pd.DataFrame(df, columns=['path', 'current_init_files', 'children_init_files'])
-        self.df_init_files['rank'] = self.df_init_files['current_init_files'] + self.df_init_files['children_init_files']
-        self.df_init_files = self.df_init_files.sort_values(by='rank', ascending=False)
-        max_rank_path = self.df_init_files.sort_values(by='rank', ascending=False).iloc[0]['path']
-        return Path(max_rank_path)
-
-
-
     #
     def guess_believed_top_level_folder_structure(self, min_count=10):
         """
@@ -128,6 +96,78 @@ class TopLevelStructureHelper:
             # Increment the counter
             counter += 1
         return top_level_structure[::-1]  # Reverse the list to present it from top to bottom
+
+    #
+    def poll_opinions_on_top_level_folder_structure(self):
+        """
+        (1) Gather all "from ... import ..." statements from .py files in the self.modules_level directory and subdirectories.
+        (2) filters to statements that reference subdirectories of self.modules_level -> which point to the top level folder structure
+        (3) return all the relevant import statements and the list of subdirectories.
+        """
+    
+        # Get the current directory
+        current_dir = self.modules_level
+        top_level_dir = current_dir
+    
+        # Get the names of all direct subdirectories of top_level_dir
+        subdirs = [d for d in os.listdir(top_level_dir) if os.path.isdir(os.path.join(top_level_dir, d))]
+    
+        # This will store all the relevant import statements
+        import_statements = []
+    
+        # Walk through all directories and files under top_level_dir
+        for root, _, files in os.walk(top_level_dir):
+            for filename in files:
+                # Only look at .py files
+                if filename.endswith('.py'):
+                    with open(os.path.join(root, filename), 'r', encoding='utf-8', errors='ignore') as file:  # Modified line
+                        # Read the file content
+                        content = file.read()
+    
+                        # Find all "from ... import ..." statements
+                        from_import_matches = re.findall(r"from\s+(\S+)\s+import", content)
+    
+                        # Only keep the ones that reference one of the subdirectories
+                        for match in from_import_matches:
+                            for subdir in subdirs:
+                                if subdir in match:
+                                    # Split at the subdir and keep only the portion before it
+                                    truncated_match = match.split(subdir)[0]+"."+subdir
+                                    import_statements.append(truncated_match)
+    
+        import_statements = {statement: statement.split('.') for statement in import_statements if "" not in statement.split('.')}
+        return import_statements, subdirs
+
+    #
+    def guess_modules_level(self, max_levels_up=3):
+        """
+        Attempts to identify the folder level where the modules are located
+        (1) if positions in self.helper_location (the location of the same file)
+        (2) it list the parent folder up to max_levels_up
+        (3) for each folder, it dict-counts the number of __init__ files in the current folder, and in the subfolders one level down
+        (4) assemble a pandas.DataFrame with the counts, create a rank column, stores the dataframe in self.df_init_files 
+        (5) returns the folder path with the highest rank
+        """
+        df = []
+        for level in range(-1, max_levels_up):  
+            if level == -1:  
+                current_path = self.helper_location.parent
+            else:  
+                # Ensure we do not go beyond available parent directories
+                try:
+                    current_path = self.helper_location.parents[level]
+                except IndexError:
+                    break
+    
+            init_files_in_current = len(list(current_path.glob("__init__.py")))
+            init_files_in_children = sum(len(list(child.glob("__init__.py"))) for child in current_path.iterdir() if child.is_dir())
+            df.append((str(current_path), init_files_in_current, init_files_in_children))
+    
+        self.df_init_files = pd.DataFrame(df, columns=['path', 'current_init_files', 'children_init_files'])
+        self.df_init_files['rank'] = self.df_init_files['current_init_files'] + self.df_init_files['children_init_files']
+        self.df_init_files = self.df_init_files.sort_values(by='rank', ascending=False)
+        max_rank_path = self.df_init_files.sort_values(by='rank', ascending=False).iloc[0]['path']
+        return Path(max_rank_path)
 
     #
     def detect_top_folder_structure_drift(self):
