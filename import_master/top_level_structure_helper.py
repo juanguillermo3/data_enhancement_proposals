@@ -33,6 +33,7 @@ class TopLevelStructureHelper:
         self.statements, self.subdirs = self.poll_opinions_on_top_level_folder_structure()
         self.believed_top_level_folder_structure = self.guess_believed_top_level_folder_structure()
 
+    #
     def guess_modules_level(self, max_levels_up=3):
         """
         Attempts to identify the folder level where the modules are located
@@ -46,12 +47,12 @@ class TopLevelStructureHelper:
         for level in range(-1, max_levels_up):  
             if level == -1:  
                 current_path = self.helper_location.parent
-            else:
-                current_path = self.helper_location.parents[min(level, len(self.helper_location.parents) - 1)]
-                
-            # If we have reached the root directory, we could stop looking further up the directory tree
-            if current_path == current_path.parent:
-                break
+            else:  
+                # Ensure we do not go beyond available parent directories
+                if level < len(self.helper_location.parents):
+                    current_path = self.helper_location.parents[level]
+                else:
+                    break
     
             init_files_in_current = len(list(current_path.glob("__init__.py")))
             init_files_in_children = sum(len(list(child.glob("__init__.py"))) for child in current_path.iterdir() if child.is_dir())
