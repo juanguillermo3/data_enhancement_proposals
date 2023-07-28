@@ -250,8 +250,8 @@ class TopLevelStructureHelper:
         os.symlink(self.modules_level , current_dir / self.believed_top_level_folder_structure[-1])
         
         # Add the directory of the current .py file to sys.path
-        sys.path.append(str(base_dir))
-        sys.path.append(str(magic_dir))
+        sys.path.insert(0, str(base_dir))
+        sys.path.insert(0, str(magic_dir))
 
         # Print out the example import statements for the user
         base_import_path = ".".join(['magic_universal_access'] + self.believed_top_level_folder_structure)
