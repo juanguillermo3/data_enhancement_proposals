@@ -23,7 +23,7 @@ class TopLevelStructureHelper:
     def __init__(self, helper_location=None):
         if helper_location is None:
             try:
-                self.helper_location = Path(__file__).resolve().parent
+                self.helper_location = Path(__file__).resolve()
             except NameError:  # __file__ is not available in Jupyter notebooks
                 raise EnvironmentError("This class cannot be instantiated in an environment where __file__ is not defined, unless a 'helper_location' is provided.")
         else:
