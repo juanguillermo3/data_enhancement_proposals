@@ -23,7 +23,7 @@ class TopLevelStructureHelper:
     def __init__(self, helper_location=None):
         if helper_location is None:
             try:
-                self.helper_location = Path(__file__).resolve()
+                self.helper_location = Path(__file__).resolve().parent
             except NameError:  # __file__ is not available in Jupyter notebooks
                 self.helper_location = Path().resolve()  # Use the current working directory instead
         else:
