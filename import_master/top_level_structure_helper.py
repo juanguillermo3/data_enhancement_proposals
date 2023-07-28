@@ -21,13 +21,13 @@ class TopLevelStructureHelper:
 
     #
     def __init__(self, helper_location=None):
-        if helper_location is None:
-            try:
-                self.helper_location = Path(__file__).resolve().parent
-            except NameError:  # __file__ is not available in Jupyter notebooks
-                self.helper_location = Path().resolve()  # Use the current working directory instead
-        else:
-            self.helper_location = Path(helper_location).resolve()
+
+        #
+        try:
+            self.helper_location = Path(__file__).resolve().parent
+        except NameError:  # __file__ is not available in Jupyter notebooks
+            raise EnvironmentError("This class cannot be instantiated in an environment where __file__ is not defined, unless a 'helper_location' is provided.")
+        #
         self.df_init_files = pd.DataFrame()
         self.modules_level = self.guess_modules_level()
         self.statements, self.subdirs = self.poll_opinions_on_top_level_folder_structure()
